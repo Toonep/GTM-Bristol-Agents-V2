@@ -1,0 +1,9 @@
+{
+  "industry": "home_services",
+  "specialty": "plumbing",
+  "specialty_search_terms": ["plumber", "plumbing", "plumbing contractor"],
+  "target_states": ["TX", "CA", "FL"],
+  "cities_per_state": 20,
+  "leads_target": 2000,
+  "output_directory": "./output"
+}
