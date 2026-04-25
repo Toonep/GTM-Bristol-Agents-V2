@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bristol Lead Sourcer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #1e293b;
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  header .tag {
+    background: #3b82f6;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .key-status {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .key-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .key-badge.ok { background: #16a34a; color: white; }
+  .key-badge.missing { background: #dc2626; color: white; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: calc(100vh - 60px);
+  }
+
+  .panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    background: #f8fafc;
+  }
+
+  .panel-body { padding: 18px; }
+
+  /* Form */
+  .field { margin-bottom: 16px; }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  input[type="text"], input[type="number"], textarea {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: 13px;
+    color: #1e293b;
+    background: white;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .hint { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+  /* States grid */
+  .states-toolbar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .states-toolbar button {
+    font-size: 11px;
+    padding: 3px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    color: #475569;
+    font-weight: 600;
+  }
+  .states-toolbar button:hover { background: #f1f5f9; }
+
+  .states-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    max-height: 160px;
+    overflow-y: auto;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    padding: 8px;
+  }
+  .state-cb {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 3px;
+    border-radius: 4px;
+    user-select: none;
+  }
+  .state-cb:hover { background: #f1f5f9; }
+  .state-cb input { cursor: pointer; accent-color: #3b82f6; }
+
+  /* Run button */
+  .run-btn {
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 4px;
+  }
+  .run-btn:hover:not(:disabled) { background: #1d4ed8; }
+  .run-btn:active:not(:disabled) { transform: scale(0.99); }
+  .run-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+  .run-btn.running { background: #dc2626; }
+
+  /* Right panel */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    padding: 14px 18px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: none;
+  }
+  .progress-wrap.visible { display: block; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .progress-bar-bg {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: #2563eb;
+    border-radius: 99px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  /* Log console */
+  .log-console {
+    background: #0f172a;
+    border-radius: 10px;
+    overflow: hidden;
+    flex: 1;
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+  }
+  .log-header {
+    padding: 10px 16px;
+    background: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .log-title { color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; background: #475569; }
+  .log-dot.running { background: #22c55e; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .log-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #94a3b8;
+  }
+  .log-body::-webkit-scrollbar { width: 6px; }
+  .log-body::-webkit-scrollbar-track { background: #0f172a; }
+  .log-body::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+  .log-entry { display: flex; gap: 8px; }
+  .log-ts { color: #475569; flex-shrink: 0; }
+  .log-mod { color: #7c3aed; flex-shrink: 0; min-width: 100px; }
+  .log-msg { color: #cbd5e1; word-break: break-word; }
+  .log-entry.WARN .log-msg { color: #fbbf24; }
+  .log-entry.ERROR .log-msg { color: #f87171; }
+  .log-entry.INFO .log-msg { color: #cbd5e1; }
+  .log-entry.DEBUG .log-msg { color: #475569; }
+  .log-entry.system { color: #64748b; font-style: italic; }
+  .log-placeholder { color: #334155; text-align: center; padding: 40px 20px; }
+
+  /* Results card */
+  .results-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    overflow: hidden;
+    display: none;
+  }
+  .results-card.visible { display: block; }
+  .results-header {
+    padding: 14px 18px;
+    background: #16a34a;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .results-header.error { background: #dc2626; }
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #e2e8f0;
+  }
+  .result-stat {
+    background: white;
+    padding: 16px;
+    text-align: center;
+  }
+  .result-stat .num {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1;
+  }
+  .result-stat .lbl {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .results-body { padding: 14px 18px; }
+  .state-breakdown { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .state-pill {
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    background: #f1f5f9;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .open-btn:hover { background: #e2e8f0; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .results-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">◆ Bristol Lead Sourcer</div>
+  <div class="tag">LIVE</div>
+  <div class="key-status" id="keyStatus"></div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Config form -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">Configure Run</div>
+      <div class="panel-body">
+
+        <div class="field">
+          <label>Specialty</label>
+          <input type="text" id="specialty" placeholder="e.g. plumbing">
+        </div>
+
+        <div class="field">
+          <label>Industry</label>
+          <input type="text" id="industry" placeholder="e.g. home_services">
+        </div>
+
+        <div class="field">
+          <label>Search Terms</label>
+          <textarea id="searchTerms" placeholder="plumber, plumbing, plumbing contractor"></textarea>
+          <div class="hint">Comma-separated. These are sent directly to Google Places.</div>
+        </div>
+
+        <div class="field">
+          <label>Target States</label>
+          <div class="states-toolbar">
+            <button onclick="selectCommon()">Common</button>
+            <button onclick="selectAll()">All</button>
+            <button onclick="clearStates()">Clear</button>
+          </div>
+          <div class="states-grid" id="statesGrid"></div>
+        </div>
+
+        <div class="field">
+          <label>Target Leads</label>
+          <input type="number" id="target" min="10" max="5000" step="10" value="50">
+          <div class="hint">Pipeline stops once this many clean leads are collected.</div>
+        </div>
+
+        <div class="field">
+          <label>Cities Per State</label>
+          <input type="number" id="citiesPerState" min="1" max="30" value="20">
+          <div class="hint">Max 30. Fewer cities = faster run.</div>
+        </div>
+
+        <button class="run-btn" id="runBtn" onclick="handleRun()">▶ Run Pipeline</button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Log + Results -->
+  <div class="right-panel">
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label">
+        <span id="progressText">Collecting leads...</span>
+        <span id="progressCount">0 / 0</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div class="log-console">
+      <div class="log-header">
+        <div class="log-dot" id="logDot"></div>
+        <div class="log-title">Live Log</div>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="log-placeholder">Configure your run and click ▶ Run Pipeline to start.</div>
+      </div>
+    </div>
+
+    <div class="results-card" id="resultsCard">
+      <div class="results-header" id="resultsHeader">✓ Run Complete</div>
+      <div class="results-grid">
+        <div class="result-stat"><div class="num" id="resLeads">—</div><div class="lbl">Leads Collected</div></div>
+        <div class="result-stat"><div class="num" id="resDups">—</div><div class="lbl">Duplicates Removed</div></div>
+        <div class="result-stat"><div class="num" id="resDur">—</div><div class="lbl">Duration (sec)</div></div>
+      </div>
+      <div class="results-body">
+        <div class="state-breakdown" id="stateBreakdown"></div>
+        <button class="open-btn" id="openBtn" onclick="openOutput()">📁 Open Output Folder</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ALL_STATES = ['AK','AL','AR','AZ','CA','CO','CT','DE','FL','GA','HI','IA','ID','IL','IN','KS','KY','LA','MA','MD','ME','MI','MN','MO','MS','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VA','VT','WA','WI','WV','WY'];
+const COMMON_STATES = ['TX','CA','FL','NY','PA','OH','IL','GA','NC','MI','AZ','WA'];
+let lastOutputDir = './output';
+
+// Build states grid
+function buildStatesGrid(selected = []) {
+  const grid = document.getElementById('statesGrid');
+  grid.innerHTML = '';
+  ALL_STATES.forEach(s => {
+    const label = document.createElement('label');
+    label.className = 'state-cb';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = s;
+    cb.checked = selected.includes(s);
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(s));
+    grid.appendChild(label);
+  });
+}
+
+function getSelectedStates() {
+  return [...document.querySelectorAll('#statesGrid input:checked')].map(cb => cb.value);
+}
+
+function selectAll() { document.querySelectorAll('#statesGrid input').forEach(cb => cb.checked = true); }
+function clearStates() { document.querySelectorAll('#statesGrid input').forEach(cb => cb.checked = false); }
+function selectCommon() {
+  document.querySelectorAll('#statesGrid input').forEach(cb => {
+    cb.checked = COMMON_STATES.includes(cb.value);
+  });
+}
+
+// Load config and populate form
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    document.getElementById('specialty').value = cfg.specialty || '';
+    document.getElementById('industry').value = cfg.industry || '';
+    document.getElementById('searchTerms').value = (cfg.specialty_search_terms || []).join(', ');
+    document.getElementById('target').value = cfg.leads_target || 50;
+    document.getElementById('citiesPerState').value = cfg.cities_per_state || 20;
+    buildStatesGrid(cfg.target_states || ['TX']);
+  } catch (e) {
+    buildStatesGrid(['TX']);
+  }
+}
+
+// Check API keys and show badge
+async function checkKeys() {
+  try {
+    const res = await fetch('/api/keys');
+    const keys = await res.json();
+    const status = document.getElementById('keyStatus');
+    status.innerHTML = '';
+    const items = [
+      { label: 'Google Places', ok: keys.google },
+      { label: 'Hunter', ok: keys.hunter },
+    ];
+    items.forEach(({ label, ok }) => {
+      const b = document.createElement('span');
+      b.className = `key-badge ${ok ? 'ok' : 'missing'}`;
+      b.textContent = `${ok ? '✓' : '✗'} ${label}`;
+      status.appendChild(b);
+    });
+  } catch (_) {}
+}
+
+// Append a line to the log console
+function appendLog(entry) {
+  const body = document.getElementById('logBody');
+  const placeholder = body.querySelector('.log-placeholder');
+  if (placeholder) placeholder.remove();
+
+  const div = document.createElement('div');
+  div.className = `log-entry ${(entry.level || '').toUpperCase()}`;
+
+  const ts = document.createElement('span');
+  ts.className = 'log-ts';
+  ts.textContent = (entry.timestamp || '').slice(11, 19);
+
+  const mod = document.createElement('span');
+  mod.className = 'log-mod';
+  mod.textContent = `[${entry.module || 'app'}]`;
+
+  const msg = document.createElement('span');
+  msg.className = 'log-msg';
+  msg.textContent = entry.message || '';
+
+  div.appendChild(ts);
+  div.appendChild(mod);
+  div.appendChild(msg);
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function appendSystem(text) {
+  const body = document.getElementById('logBody');
+  const div = document.createElement('div');
+  div.className = 'log-entry system';
+  div.textContent = `— ${text} —`;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+// Handle run button
+let currentOutputDir = './output';
+
+async function handleRun() {
+  const btn = document.getElementById('runBtn');
+  const states = getSelectedStates();
+
+  if (states.length === 0) { alert('Please select at least one state.'); return; }
+
+  const payload = {
+    specialty: document.getElementById('specialty').value.trim(),
+    industry: document.getElementById('industry').value.trim(),
+    searchTerms: document.getElementById('searchTerms').value.split(',').map(s => s.trim()).filter(Boolean),
+    states,
+    target: parseInt(document.getElementById('target').value, 10),
+    citiesPerState: parseInt(document.getElementById('citiesPerState').value, 10),
+  };
+
+  // Reset UI
+  document.getElementById('logBody').innerHTML = '';
+  document.getElementById('resultsCard').classList.remove('visible');
+  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressCount').textContent = `0 / ${payload.target}`;
+  document.getElementById('logDot').classList.add('running');
+  btn.disabled = true;
+  btn.classList.add('running');
+  btn.textContent = '⏸ Running...';
+
+  appendSystem(`Starting run: ${payload.specialty} | ${states.join(', ')} | target ${payload.target}`);
+
+  try {
+    const response = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const event = JSON.parse(line.slice(6));
+          if (event.type === 'log') {
+            appendLog(event);
+          } else if (event.type === 'progress') {
+            const pct = Math.min(100, Math.round((event.total / event.target) * 100));
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressCount').textContent = `${event.total} / ${event.target}`;
+          } else if (event.type === 'done') {
+            currentOutputDir = event.outputDir || './output';
+            showResults(event);
+          } else if (event.type === 'error') {
+            appendSystem(`Error: ${event.message}`);
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (err) {
+    appendSystem(`Connection error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('running');
+    btn.textContent = '▶ Run Pipeline';
+    document.getElementById('logDot').classList.remove('running');
+    document.getElementById('progressWrap').classList.remove('visible');
+  }
+}
+
+function showResults(data) {
+  appendSystem('Run complete');
+  const card = document.getElementById('resultsCard');
+  card.classList.add('visible');
+  document.getElementById('resLeads').textContent = data.totalLeads ?? '—';
+  document.getElementById('resDups').textContent = data.duplicatesRemoved ?? '—';
+  document.getElementById('resDur').textContent = data.duration ?? '—';
+
+  const breakdown = document.getElementById('stateBreakdown');
+  breakdown.innerHTML = '';
+  if (data.stateBreakdown) {
+    Object.entries(data.stateBreakdown).forEach(([state, count]) => {
+      const pill = document.createElement('span');
+      pill.className = 'state-pill';
+      pill.textContent = `${state}: ${count}`;
+      breakdown.appendChild(pill);
+    });
+  }
+}
+
+async function openOutput() {
+  await fetch('/api/open-output', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ outputDir: currentOutputDir }),
+  });
+}
+
+// Init
+loadConfig();
+checkKeys();
+</script>
+</body>
+</html>

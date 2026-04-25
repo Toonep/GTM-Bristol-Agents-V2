@@ -4,17 +4,20 @@
   "description": "Lead sourcing pipeline for Bristol GTM",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "web": "node src/app.js"
   },
   "dependencies": {
     "axios": "^1.7.2",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "fast-csv": "^5.0.1",
     "fast-levenshtein": "^3.0.0",
     "node-cron": "^3.0.3",
     "p-limit": "^3.1.0",
     "uuid": "^10.0.0",
-    "winston": "^3.13.0"
+    "winston": "^3.13.0",
+    "winston-transport": "^4.7.1"
   }
 }
